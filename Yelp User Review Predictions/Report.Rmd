@@ -1,0 +1,197 @@
+---
+title: "Yelp User Review Predictions"
+author: "Micah Okoko"
+date: "2023-11-08"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library (glmnet) 
+library(caret)
+library(jsonlite)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(ipred)
+library(randomForest) 
+```
+
+# DS Methodology
+
+Throughout this project, the General DS Methodology approach by John Rallins has been followed. This approach consists of the stages Business Understanding, Analytic Approach, Data Requirements, Collection, Understanding, and Preparation, then Modelling, Evaluation, and Deployment, supplemented by Feedback. This methodology was chosen due to its organised, yet adaptable structure making it ideal for handling the complex nature of the Yelp datasets. This was applied by initially understanding the problem and how the data can be utilised to solve it where other literature and readings were consulted. Several comprehensive datasets from Yelp were looked at with approximately 7 million reviews, and the data required was organised. Predictive models and evaluation techniques were then used and tested in order to achieve optimal results. Feedback from the evaluation is also reviewed.
+
+# Method
+
+## Introduction
+
+There are 3 main phases of this adopted method; Problem Definition, Data Understanding & Organisation, finally Validation and Deployment.
+
+## 1. Problem Definition
+
+### Problem Understanding
+
+The problem for this paper is defined as follows: Use yelp datasets to predict user reviews.
+
+### Analytical Approach
+
+During this stage the reading by Hastie et al. (2021) on Statistical Learning was looked at. This paper highlights that decision trees are robust to overfitting, capable of handling comprehensive datasets, and predictive performance can be enhanced using tree ensembles. Given this information and understanding of the problem, the best statistical approach decided was to utilise classification trees. Star ratings given by user i to business j is the target variable, where the user star ratings 1, 2, 3, 4, and 5 are considered discrete categories. Relevant features from the datasets will also be selected and used in tree models.
+
+## 2. Data Understanding & Organisation
+
+### Data Requirements and Collection
+
+The first step of this phase is understanding what data is required and deciding the best variables to use as predictors. The data is collected from yelp and can be found [via this link](https://www.yelp.com/dataset), simplified versions can also be found [here](https://www.dropbox.com/scl/fo/13e7aqz02h04qmt1j4cbe/h?rlkey=4yehthpsox6ede2i133q4tylm&dl=0). This data is loaded into the local environment.
+
+```{r}
+load("~/yelp_review_small.Rda")
+load("~/yelp_user_small.Rda")
+business_data <- stream_in(file("~/yelp_academic_dataset_business.json")) 
+```
+
+After gaining an detailed understanding of the datasets, the 'review_data_small', 'user_data_small', and 'business_data' datasets were seen as the most relevant and merged together.
+
+```{r}
+data_initial_merge <- merge(review_data_small, user_data_small, by = "user_id")
+data_merged <- merge(data_initial_merge, business_data, by = "business_id")
+```
+
+In this dataset stars.x represents our target variable.
+
+### Data Understanding
+
+Relevant features were then selected and put into a single dataset.
+
+```{r}
+data_final <- data_merged %>% select(stars.x, funny.x, cool.x, review_count.x, useful.y, 
+                                      funny.y, cool.y, fans, average_stars, stars.y, review_count.y, 
+                                      is_open, starts_with('compliment_'))
+```
+
+These features were selected using careful analysis. The decision to focus on various metrics was based on the belief that these variables collectively offer a broad overview of user behavior and preferences on yelp. Features like 'funny', 'cool', 'useful' and the 'compliment\_' variables directly reflect user interaction and satisfaction helping to understand the overall thought of the reviews. 'Review_count' and 'fans' indicate the level of user engagement and influence on the yelp platform, which can significantly impact how a business is perceived. 'Average_stars' from users provides a strong indication of general rating behavior, and 'is_open' tells us the business's current status.
+
+### Data Preparation
+
+The target variable is transformed into a categorical variable.
+
+```{r}
+data_final$stars.x <- as.factor(data_final$stars.x)
+```
+
+This is done so the tree models can efficiently handle the predictive task as a classification problem.
+
+Finally, the data is split into training and testing sets with 10000 observations in the testing set.
+
+```{r}
+set.seed(1)
+test_set_size <- 10000
+test <- sample(1:nrow(data_final), test_set_size) 
+data_final_test <- data_final[test, ]
+data_final_train <- data_final[-test, ]
+```
+
+## 3. Validation & Deployment
+
+### Modelling
+
+The random forest model, which applies the idea of bagging with random trees, was chosen for this problem as it is effective for categorical variables, can handle large numbers of features, and is robust against overfitting.
+
+The data was modelled with random forest.
+
+```{r}
+model_RF<-randomForest(stars.x ~ ., data=data_final_train, ntree=50, importance = TRUE, nodesize = 5)
+model_RF2<-randomForest(stars.x ~ ., data=data_final_train, ntree=50, importance = TRUE, nodesize = 1)
+```
+
+The parameter 'nodesize' was adjusted where this is the minimum size of the terminal node. A smaller node size tends to create more complex trees, but if this is too small it can lead to over fitting, this means increasing the node size from 1 to 5 can be seen as a form of regularization.
+
+### Evaluation
+
+Node size = 5:
+
+```{r}
+model_RF
+```
+
+Node size = 1:
+
+```{r}
+model_RF2
+```
+
+The Out Of Bag (OOB) error is an estimate of the error rate that the model has for unseen data. According to Hastie et al. (2021), OOB observations are observations not used to fit a given tree. Predictions for these OOB observations are made using trees that were not fit using that observation. This provides a way to evaluate the model without a test set and tends to work best with a large numbers of trees. Since the OOB slightly decreases when node size increases from 1 to 5, it suggests overfitting has been slightly reduced.
+
+The confusion matrix describes the performance of a classification model, each row represents predicted classes, and each column represents actual classes. The class error rates shows how the model performs for each individual class.
+
+Setting importance = 'TRUE' in the random forest model parameters allows a measure of variable importance to be determined.
+
+```{r}
+varImpPlot(model_RF)
+```
+
+The Mean Decrease Accuracy shows the decrease in model accuracy when a variable is excluded, the accuracy decreases more if the excluded variable is more important. The Mean Decrease Gini measures the contribution of each variable to the homogeneity of the nodes and leaves, the more a variable decreases the Gini impurity, the more it contributes to creating homogeneous nodes in the decision tree (Fernando et al, 2020). From these plots we can conclude that 'average_stars' and 'stars.y' are the most significant features in the model.
+
+For further insight we can plot the random forest model.
+
+```{r}
+plot(model_RF)
+```
+
+From this plot we can observe the general error rate trend as the number of trees increases. We see that the error rate generally decreases as the number of trees increases, as random forest models tend to perform better with a larger number of trees. The error rate also seems to plateau at around 30 - 40 trees indicating that adding more trees beyond this point may not improve the performance of the model.
+
+To fully evaluate the model it is also tested against the test set and the accuracy is calculated:
+
+```{r}
+true_values <- data_final_test$stars.x
+predictions_rf <- predict(model_RF, data_final_test)
+accuracy_rf <- sum(predictions_rf == true_values) / length(true_values)
+print(paste("RF Accuracy:", accuracy_rf))
+```
+
+A 57.75% accuracy, which is the total number of correct predictions divided by the total number of predictions, suggests the model performs reasonably well and has learned patterns in the data.
+
+### Other Models
+
+A partitioned classification tree was also tested.
+
+```{r}
+rpart_tree <- rpart(stars.x ~ ., data = data_final_train, method = "class")
+```
+
+```{r}
+rpart.plot(rpart_tree)
+```
+
+This graph shows that the 'average_stars' feature is significant in determining the class of a user review. The structure of the tree also highlights that some paths result in high confidence class predictions, whilst others suggest more ambiguity with mixed class distributions. Overall it suggests that the tree captures patterns in the data, but there is variability in the confidence of predictions across different branches.
+
+The accuracy of the model was also determined.
+
+```{r}
+predictions_rpart <- predict(rpart_tree, data_final_test, type = "class")
+accuracy_rpart <- sum(predictions_rpart == true_values) / length(true_values)
+print(paste("Accuracy:", accuracy_rpart))
+```
+
+Although a 54.46% accuracy indicates it performs better than random guessing, it still under performs against the random forest model.
+
+### Deployment and Feedback
+
+The feedback from the evaluation indicates further model improvements should be done before being practically deployed. This can be include further tuning the model parameters, optimising features, and using a cross validation set to check the models ability to generalise a pattern.
+
+# Challenges and Solutions
+
+The biggest challenge was handling the large size of the datasets and generating complex models which presented computational limitations. My initial attempt to use random forest proved unfeasible given the limitations of the hardware. To overcome this, I used the smaller datasets provided, and the parameters of the random forest model was adjusted decreasing the number of trees to 50. Although these adjustments can lead to underfitting and may limit the model robustness, this approach was effective in reducing the computational load.
+
+# References:
+
+James, G.; Witten, D.; Hastie, T.; & Tibshirani, R,. 2021 (2nd Ed.). An Introduction to Statistical Learning with Applications in R. Springer.
+
+Martinez-Taboada, Fernando; Redondo, Jose Ignacio (2020). Variable importance plot (mean decrease accuracy and mean decrease Gini).
