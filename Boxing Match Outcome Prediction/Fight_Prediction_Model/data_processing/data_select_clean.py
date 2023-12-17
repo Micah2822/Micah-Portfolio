@@ -7,29 +7,12 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 import pandas as pd
 
-dataset = pd.read_csv("/Users/micahokoko/Desktop/Micah-Portfolio/Fight_Prediction_Model/dataset/dataset.csv")
-# punchingstats = pd.read_csv("/Users/micahokoko/Desktop/Micah-Portfolio/Fight_Prediction_Model/dataset/punchingstats.csv")
-
-
-# Convert to numerical
-#dataset['sex'] = dataset['sex'].map({'male': 1, 'female': 0})
-#
-
-# One hot coding
-#final_data = pd.get_dummies(dataset, columns=['name', 'opposition']).dropna()
-
-#X = final_data.drop('clean_outcome', axis=1)  # features (drop the target variable)
-#Y = final_data['clean_outcome']  # target variable
+dataset = pd.read_csv("~/Fight_Prediction_Model/dataset/dataset.csv")
 
 
 
 dataset = dataset[dataset['clean_outcome'].notna()]
 dataset = dataset[dataset['clean_outcome'] != 'Unknown']
-
-#categorical to numerical
-# dataset.loc[(dataset['clean_outcome'] == 'Win KO')|(dataset['clean_outcome'] == 'Win Other'), 'clean_outcome'] = 1
-# dataset.loc[(dataset['clean_outcome'] == 'Draw'), 'clean_outcome'] = 2
-# dataset.loc[(dataset['clean_outcome'] == 'Loss Other')|(dataset['clean_outcome'] == 'Loss KO'), 'clean_outcome'] = 3
 dataset['clean_outcome'] = dataset['clean_outcome'].map({'win': 1, 'loss': 0})
 
 
