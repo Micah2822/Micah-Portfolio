@@ -1,20 +1,20 @@
 import pandas as pd
 from Fight_Prediction_Model.NN_ML_Model.nn_model import model
-from Fight_Prediction_Model.data_processing.data_select_clean import dataset, X, Y
+from Fight_Prediction_Model.data_processing.data_select_clean import dataset
 import tensorflow as tf
 
 
-
-# Example usage
+# Input Names Here
 fighter1_name = "Terence Crawford"
 fighter2_name = "Errol Spence Jr"
 
 
 # Define the columns used as features and their corresponding 'opposition' versions
-feature_columns = ['opp_last6','opp_KO ratio','Win KO','opp_winOther','Loss Other','Loss KO','Win Other','KO ratio','opp_winOther',
-                    'KnockedOut ratio','opp_winKO','opp_KO ratio','opp_loss','opp_lossOther','opp_win','Draw','opp_lossKO']
-
-
+feature_columns = ['opp_last6', 'opp_KnockedOut ratio', 'opp_winOther',  'opp_winKO', 'opptotalaccuracy', 'oppavgtotalagainst',
+                    'opp_KO ratio', 'opp_loss', 'opp_lossOther', 'opp_win', 'opp_lossKO', 'oppavgtotallanded',
+                    'Total punch accuracy', 'Avg Total punches landed', 'Avg Total punches landed against',
+                    'Win KO', 'Loss KO', 'Win Other', 'KO ratio', 'Loss Other',
+                    'KnockedOut ratio', 'Draw', 'last6']
 
 opposition_feature_mapping = {
     'opp_winKO': 'Win KO',
@@ -23,8 +23,10 @@ opposition_feature_mapping = {
     'opp_lossOther': 'Loss Other',
     'opp_last6': 'last6',
     'opp_KO ratio': 'KO ratio',
-    'opp_loss': 'clean_outcome',
-    'opp_win': 'clean_outcome'
+    'opp_KnockedOut ratio': 'KnockedOut ratio',
+    'opptotalaccuracy': 'Total punch accuracy',
+    'oppavgtotalagainst': 'Avg Total punches landed against',
+    'oppavgtotallanded': 'Avg Total punches landed'
 }
 
 # Function to create a new row for prediction
@@ -80,8 +82,6 @@ def predict_outcome(fighter1, fighter2):
         looser_chance = prediction_f1_vs_f2[0]
 
     return winner, looser, winning_chance, looser_chance
-
-
 
 try:
     winner, looser, winning_chance, looser_chance = predict_outcome(fighter1_name, fighter2_name)
