@@ -9,6 +9,10 @@ Welcome to my GitHub portfolio! Here you'll find a selection of my projects and 
 
 **Machine Learning Techniques** Used: Classification Trees
 
+### Boxing Match Outcome Predictions
+**Technologies** Used: Python
+
+**Machine Learning Techniques** Used: Neural Network
 
 # Certifications and Courses
 
