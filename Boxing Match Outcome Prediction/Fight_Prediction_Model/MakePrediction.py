@@ -4,14 +4,10 @@ from Fight_Prediction_Model.data_processing.data_select_clean import dataset, X,
 import tensorflow as tf
 
 
-# print("Please input fighters first and last name with first letter capatalised")
-# fighter = input("Input your chosen fighter: ")
-# opposition = input("Input their opposition: ")
 
-
-# (1) Access feature data from each name
-# (2) remove name and input features into model
-# (3) Get predictions
+# Example usage
+fighter1_name = "Terence Crawford"
+fighter2_name = "Errol Spence Jr"
 
 
 # Define the columns used as features and their corresponding 'opposition' versions
@@ -86,10 +82,6 @@ def predict_outcome(fighter1, fighter2):
     return winner, looser, winning_chance, looser_chance
 
 
-
-# Example usage
-fighter1_name = "Terence Crawford"
-fighter2_name = "Errol Spence Jr"
 
 try:
     winner, looser, winning_chance, looser_chance = predict_outcome(fighter1_name, fighter2_name)
